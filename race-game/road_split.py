@@ -71,7 +71,12 @@ def split_road_by_len(obj, num_divisions, len_attr_name):
         bm_seg.free()
 
     bm.free()
-    return new_obj
+    
+    # Delete the intermediate _segmented object as it's no longer needed
+    bpy.data.objects.remove(new_obj, do_unlink=True)
+    bpy.data.meshes.remove(mesh_from_eval, do_unlink=True)
+    
+    return None
 
 
 # Run the function on the active object

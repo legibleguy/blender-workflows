@@ -6,6 +6,38 @@ num_divisions = 10  # how many sections based on Len
 len_attr_name = "Len"  # name of the custom float attribute on verts
 solidify_thickness = 0.05  # adjust thickness of solidify (collision box depth)
 collision_obj_prefix = "UCX"  # prefix for Unreal collision meshes
+separate_collision_boxes = True  # whether to separate each box into individual objects
+
+def separate_loose_parts(obj, base_name):
+    """
+    Separate all loose (disconnected) parts of a mesh object into individual objects.
+    Returns a list of the new objects created.
+    """
+    # Select the object and make it active
+    bpy.ops.object.select_all(action='DESELECT')
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    
+    # Enter edit mode
+    bpy.ops.object.mode_set(mode='EDIT')
+    
+    # Select all
+    bpy.ops.mesh.select_all(action='SELECT')
+    
+    # Separate by loose parts
+    bpy.ops.mesh.separate(type='LOOSE')
+    
+    # Return to object mode
+    bpy.ops.object.mode_set(mode='OBJECT')
+    
+    # Get all selected objects (the separated parts)
+    separated_objects = [o for o in bpy.context.selected_objects]
+    
+    # Just give them temporary names for now - the main function will handle final naming
+    for i, sep_obj in enumerate(separated_objects):
+        sep_obj.name = f"{base_name}_{i:03d}"
+    
+    return separated_objects
 
 def create_ucx_collision_sections(curve_obj, num_divisions, len_attr_name, thickness, prefix):
     """
@@ -77,6 +109,8 @@ def create_ucx_collision_sections(curve_obj, num_divisions, len_attr_name, thick
         face_to_segment[f.index] = min(segs)
 
     # Now, for each segment, make a separate object out of the faces
+    created_segments = []  # Keep track of created segment objects
+    
     for seg in range(num_divisions):
         # Create new bmesh for this segment
         bm_seg = bmesh.new()
@@ -102,24 +136,53 @@ def create_ucx_collision_sections(curve_obj, num_divisions, len_attr_name, thick
             continue
 
         # Create mesh data and object
-        # Only add prefix if the object name doesn't already start with it
-        if curve_obj.name.startswith(prefix + "_"):
-            obj_name = f"{curve_obj.name}_seg{seg}"
-        else:
-            obj_name = f"{prefix}_{curve_obj.name}_seg{seg}"
+        # Create a temporary name first
+        temp_obj_name = f"temp_seg_{seg}"
         
         # Create mesh with a different internal name to avoid conflicts
-        mesh_name = f"{obj_name}_mesh"
+        mesh_name = f"{temp_obj_name}_mesh"
         coll_mesh = bpy.data.meshes.new(mesh_name)
         bm_seg.to_mesh(coll_mesh)
-        coll_obj = bpy.data.objects.new(obj_name, coll_mesh)
+        coll_obj = bpy.data.objects.new(temp_obj_name, coll_mesh)
         bpy.context.collection.objects.link(coll_obj)
-
-        # Optionally set collision object visibility or custom property so you can filter them out
-        coll_obj.display_type = 'WIRE'  # or you prefer
-        # maybe mark as collision only via collection or naming
+        
+        created_segments.append(coll_obj)
 
         bm_seg.free()
+    
+    # Now separate each segment's loose parts if requested
+    if separate_collision_boxes:
+        total_collision_objects = 0
+        
+        # Process each segment and separate its loose parts
+        for seg_idx, seg_obj in enumerate(created_segments):
+            # Use a temporary base name for separation
+            temp_base = f"temp_seg{seg_idx}"
+            
+            # Separate loose parts and get the resulting objects
+            separated_parts = separate_loose_parts(seg_obj, temp_base)
+            
+            # Now rename objects for this segment with proper naming
+            if curve_obj.name.startswith(prefix + "_"):
+                base_name = f"{curve_obj.name}_seg{seg_idx}"
+            else:
+                base_name = f"{prefix}_{curve_obj.name}_seg{seg_idx}"
+            
+            for i, collision_obj in enumerate(separated_parts):
+                collision_obj.name = f"{base_name}_{i:02d}"
+                collision_obj.display_type = 'WIRE'
+            
+            total_collision_objects += len(separated_parts)
+        
+        print(f"Created {total_collision_objects} individual collision objects from {len(created_segments)} segments")
+    else:
+        # If not separating, just rename the segment objects with proper naming
+        for i, seg_obj in enumerate(created_segments):
+            if curve_obj.name.startswith(prefix + "_"):
+                seg_obj.name = f"{curve_obj.name}_seg{i}"
+            else:
+                seg_obj.name = f"{prefix}_{curve_obj.name}_seg{i}"
+            seg_obj.display_type = 'WIRE'
 
     # Clean up the temporary mesh object and its data if desired
     # Optionally delete temp_mesh_obj

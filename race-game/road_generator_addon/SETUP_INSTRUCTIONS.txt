@@ -1,0 +1,90 @@
+ROAD GENERATOR ADDON - SETUP INSTRUCTIONS
+==========================================
+
+The addon has been successfully created! To complete the setup and bundle your geometry node templates with the addon, follow these steps:
+
+IMPORTANT - SAVE YOUR GEOMETRY NODE TEMPLATES:
+----------------------------------------------
+
+1. Open your current Blender project that contains the "road" and "road_collision" geometry node groups
+
+2. In Blender's Text Editor, open and run the save_node_templates.py script
+   OR
+   Copy and run this code in Blender's Python Console:
+
+```python
+import bpy
+from pathlib import Path
+
+# Define the addon directory path
+addon_dir = Path(r"F:\Stuff\blender-workflows\race-game\road_generator_addon")
+templates_dir = addon_dir / "node_templates"
+
+# Create templates directory if it doesn't exist
+templates_dir.mkdir(exist_ok=True)
+
+# Node groups to save
+node_groups_to_save = ["road", "road_collision"]
+
+saved_count = 0
+for group_name in node_groups_to_save:
+    if group_name in bpy.data.node_groups:
+        # Get the node group
+        node_group = bpy.data.node_groups[group_name]
+        
+        # Mark with fake user to ensure it's saved
+        node_group.use_fake_user = True
+        
+        # Define the file path
+        filepath = templates_dir / f"{group_name}.blend"
+        
+        # Save to library file
+        bpy.data.libraries.write(
+            str(filepath),
+            {node_group},
+            path_remap='RELATIVE',
+            fake_user=True
+        )
+        
+        print(f"Saved '{group_name}' to {filepath}")
+        saved_count += 1
+    else:
+        print(f"Warning: '{group_name}' not found in current file")
+
+print(f"\nSaved {saved_count} node group templates to addon folder")
+```
+
+3. This will save your geometry node templates to:
+   - F:\Stuff\blender-workflows\race-game\road_generator_addon\node_templates\road.blend
+   - F:\Stuff\blender-workflows\race-game\road_generator_addon\node_templates\road_collision.blend
+
+INSTALLING THE ADDON:
+---------------------
+
+1. Once the templates are saved, the addon is ready to use
+2. In Blender, go to Edit → Preferences → Add-ons
+3. Click "Install..." and navigate to the addon folder
+4. Select the folder or create a zip of it
+5. Enable "Road Generator" from the addon list
+6. The addon panel will appear in 3D Viewport → Sidebar → "Road Gen" tab
+
+USING THE ADDON:
+----------------
+
+1. Create a curve for your road path
+2. Click "Load Node Templates" to load the geometry nodes
+3. Select the curve and click "Generate Complete Road" to:
+   - Apply road geometry
+   - Split into segments
+   - Generate collision objects
+4. Click "Export Road Segments" to export all segments with collision as FBX files
+
+ADDON FEATURES:
+---------------
+- Automatic road splitting based on length attribute
+- UCX collision generation for Unreal Engine
+- Batch export of segments with collision
+- Customizable segment count and collision settings
+- Organized collections for road and collision objects
+
+For detailed usage, see the README.md file in the addon folder.

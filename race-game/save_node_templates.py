@@ -15,7 +15,7 @@ templates_dir = addon_dir / "node_templates"
 templates_dir.mkdir(exist_ok=True)
 
 # Node groups to save
-node_groups_to_save = ["road", "road_collision", "sidewalk", "sidewalk_collision"]
+node_groups_to_save = ["road", "road_collision", "sidewalk", "sidewalk_collision", "guardrails_collision", "guardrails"]
 
 saved_count = 0
 for group_name in node_groups_to_save:

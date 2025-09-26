@@ -24,7 +24,7 @@ def load_node_templates():
     loaded_groups = []
     
     # List of expected node group files
-    node_files = ["road.blend", "road_collision.blend", "sidewalks.blend", "sidewalks_collision.blend"]
+    node_files = ["road.blend", "road_collision.blend", "sidewalks.blend", "sidewalks_collision.blend", "guardrails_collision.blend", "guardrails.blend"]
     
     for node_file in node_files:
         filepath = templates_dir / node_file
